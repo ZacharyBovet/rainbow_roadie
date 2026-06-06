@@ -1,0 +1,270 @@
+   
+const num_obs = 0.1
+
+let highscore = 0
+
+let coins = 0
+let font;
+
+let obst_count = 5
+
+function preload(){
+  
+  font = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Regular.otf')
+  
+}
+
+class Obstacle{
+  constructor(c){
+    
+   this.x = random(-width/2, width/2);
+   this.y = 0;
+   this.z = -2000;
+   this.w = random(50, 75);
+   this.h = random(50, 75);
+   this.d = random(50, 75);
+    
+   this.c = c;
+ }
+ display(){
+  
+ 
+  fill(this.c);
+  push();
+  translate(this.x, this.y, this.z);
+  box(this.w, this.h, this.d);
+  pop();
+ }
+ move(speed){
+   
+   this.z += speed
+ }
+  collides(player){
+    
+    const right_face = this.x + this.w/2;
+    const left_face = this.x - this.w/2;
+    const up_face = this.y - this.h/2;
+    const down_face = this.y + this.h/2;
+    const back_face = this.z - this.d/2
+    const front_face = this.z + this.d/2;
+    
+    const p_right = player.x + player.size;
+    const p_left = player.x - player.size;
+    const p_bot = player.y + player.size;
+    const p_top = player.y - player.size
+    const p_front = player.z + player.size;
+    const p_back = player.z - player.size;
+    
+    if (p_bot < up_face){
+      return false;
+    }
+    
+    if((p_right >= left_face && p_left <= right_face) &&
+      
+        (p_back <= back_face && p_front >= front_face)){ 
+//||
+          
+        
+      
+      
+      this.hit = true;
+     
+      return true
+      }
+    
+    
+    
+    
+    
+  }
+}
+
+
+
+
+
+class ball{
+  constructor(){
+  
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
+    
+    this.moving_left = false;
+    this.moving_right = false;
+    this.jumping = false;
+    
+    this.size = 75
+    this.roll = 0
+    this.move_speed = 5
+    this.forward_speed = 10;
+    this.roll_speed = this.forward_speed/4 + 0.5
+    
+    this.max_life_count = 10;
+    this.life_count = 100;
+    
+    this.jumping = false;
+    this.peak_jump = false;
+    this.oy = 0; //origninal y
+    this.up_jump_speed = 10
+    this.down_jump_speed = 6
+    this.jump_height = 300
+    
+    this.ground_pound = false
+    this.stop_ground_pound = false
+  }
+  display(){
+    
+    push();
+    translate(this.x, this.y, this.z);
+    rotateX(this.roll);
+    fill(255);
+    sphere(this.size)
+    pop();
+    
+    this.roll += radians(this.roll_speed)
+    
+  }
+  jump(){
+    
+    if (this.jumping){
+      if (!this.peak_jump){ //if not at top yet
+        this.y -= this.up_jump_speed; // go up
+      }
+      else if (this.y < 0){ //if top not reached and                               bottem not reached
+        this.y += this.down_jump_speed; //go down
+      }
+       else{ // if bottem reached, stop jumping
+         this.jumping = false;
+         this.peak_jump = false;
+       }        
+               
+               
+      if (this.y < -this.jump_height){ // check if                                    peak is reached
+        this.peak_jump = true;
+      }
+   }
+ }
+ ground_pound(){
+    
+    this.down_jump_speed;
+  }
+
+  
+
+
+
+}
+
+let p1 = new ball(); //empty variable
+let colors;
+
+let obstacles = [] //empty list
+
+
+
+
+function setup() {
+  createCanvas(730, 730, WEBGL);
+  
+  textFont(font);
+  
+  
+  colors = [color(255, 0, 0), //red "red"
+           color(255, 255, 0), //yellow "yellow"
+           color(0, 255, 255),  //cyan "cyan"
+           color(0, 255, 0)] //green
+  
+}
+
+function draw() {
+  background(220);
+  
+
+  
+  push();
+  resetMatrix();
+  textSize(25);
+  translate(-width/2, -height/2);
+  fill(0);
+  
+  text("speed: " + p1.forward_speed, 30, 110);
+  text("Time: " + floor(millis()/1000), 30, 40);
+  text("coins: " + coins, 30, 75);
+  text("lives: " + p1.life_count, 500, 40);
+  
+  pop();
+  
+  translate(0, height/4, 0)
+  rotateX(radians(-10));
+  
+  let c = colors[floor(random(0, 3))];
+  let green_chance = floor(random(100));
+ 
+  
+  if (green_chance == 1) {
+    c = colors[3]
+  }
+  
+  
+  if (frameCount % obst_count == 0) obstacles.push(new Obstacle(c))
+  
+
+  
+  if(keyIsDown(65)) p1.x -= p1.move_speed;
+  if(keyIsDown(68)) p1.x += p1.move_speed;
+  
+  if (!p1.jumping)
+  if(keyIsDown(87)) p1.y -= 5, p1.jumping = true;
+  
+  if (p1.ground_pound)
+  if(keyIsDown(83)) p1.ground_pound = true;
+  
+  for (let obst of obstacles){
+    obst.move(p1.forward_speed);
+    obst.display();
+    if ( obst.collides(p1)){
+      
+      //red action --> lose a life
+      if (obst.c === colors[0]) {p1.life_count -= 1
+        if (p1.life_count <= 0) {
+          p1.roll_speed = 0;
+          p1.forward_speed = 0;
+          p1.move_speed = 0;
+                                
+      }
+    }
+      
+      //yellow action --> collect coins
+      if (obst.c === colors[1]) {coins += 1}
+        
+      
+      //cyan action --> increase speed
+      if (obst.c === colors[2]) {p1.forward_speed += 1} 
+        
+      
+      //green action --> super power
+      if (obst.c === colors[3]){
+        p1.life_count += 10, 
+        p1.forward_speed += 3
+           
+           }
+            if (p1.life_count >= p1.max_life_count){
+              p1.life_count = p1.max_life_count;
+            } 
+      
+      }
+   
+    
+    }
+    
+    
+  
+  
+  
+  obstacles = obstacles.filter(obst => obst.z <= 450 && !obst.hit);
+  
+  p1.display();
+  p1.jump();
+  //p1.ground_pound();
+}
